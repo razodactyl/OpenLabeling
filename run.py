@@ -6,6 +6,8 @@ import os
 import numpy as np
 import cv2
 
+from scipy import ndimage as ndi
+from PIL import Image, ImageDraw
 
 WITH_QT = True
 try:
@@ -18,7 +20,7 @@ cv2.destroyAllWindows()
 parser = argparse.ArgumentParser(description='YOLO v2 Bounding Box Tool')
 parser.add_argument('--format', default='yolo', type=str, choices=['yolo', 'voc'], help="Bounding box format")
 parser.add_argument('--sort', action='store_true', help="If true, shows images in order.")
-parser.add_argument('--cross-thickness', default='1', type=int, help="Cross thickness")
+parser.add_argument('--cross-thickness', default='3', type=int, help="Cross thickness")
 parser.add_argument('--bbox-thickness', default='1', type=int, help="Bounding box thickness")
 args = parser.parse_args()
 
@@ -64,14 +66,50 @@ def change_class_index(x):
         print("Selected class :" + class_list[class_index])
 
 
+###
+def thresh(img):
+    img = np.asarray(img).astype(np.uint8)
+    ret,th = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+
+    white_idx = np.where(th == 255)
+    black_idx = np.where(th == 0)
+    th[white_idx] = 255
+    th[black_idx] = 0
+
+    return th
+
+def distance_transform_image(image):
+    data = np.vstack(
+        np.asarray(image).astype(np.float32)
+    )
+
+    mdt = ndi.distance_transform_cdt(data, metric='chessboard').astype('float32')
+    ldt = ndi.distance_transform_cdt(data, metric='taxicab').astype('float32')
+    edt = ndi.distance_transform_edt(data).astype('float32')
+
+    imgMDT = Image.fromarray(mdt).convert('L')
+    imgLDT = Image.fromarray(ldt).convert('L')
+    imgEDT = Image.fromarray(edt).convert('L')
+
+    return Image.merge('RGB', (imgLDT, imgEDT, imgMDT))
+
+###
+
 def draw_edges(tmp_img):
-    blur = cv2.bilateralFilter(tmp_img, 3, 75, 75)
-    edges = cv2.Canny(blur, 150, 250, 3)
-    edges = cv2.cvtColor(edges, cv2.COLOR_GRAY2RGB)
-    # Overlap image and edges together
-    tmp_img = np.bitwise_or(tmp_img, edges)
-    #tmp_img = cv2.addWeighted(tmp_img, 1 - edges_val, edges, edges_val, 0)
-    return tmp_img
+    tmp_img = Image.fromarray(tmp_img).convert('L')
+
+    tmp_img = distance_transform_image(thresh(tmp_img))
+
+    return np.asarray(tmp_img)
+
+    # blur = cv2.bilateralFilter(tmp_img, 3, 75, 75)
+    # edges = cv2.Canny(blur, 150, 250, 3)
+    # edges = cv2.cvtColor(edges, cv2.COLOR_GRAY2RGB)
+    # # Overlap image and edges together
+    # tmp_img = np.bitwise_or(tmp_img, edges)
+    # #tmp_img = cv2.addWeighted(tmp_img, 1 - edges_val, edges, edges_val, 0)
+    #
+    # return tmp_img
 
 
 def decrease_index(current_index, last_index):
@@ -298,7 +336,8 @@ def draw_info_bb_selected(tmp_img):
 
 
 # load img list
-img_dir = "images/"
+# img_dir = "images/"
+img_dir = "/Users/Jonathan/Desktop/scanned on 20180605/"
 image_list = glob.glob(img_dir +'*.jpg')
 image_list.extend(glob.glob(img_dir + '*.jpeg'))
 #print(image_list)
