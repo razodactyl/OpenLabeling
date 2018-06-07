@@ -1,4 +1,5 @@
 # https://stackoverflow.com/questions/39821177/python-pyqt-on-macos-sierra
+# https://pythonspot.com/pyqt5-tabs/
 
 import sys
 from PyQt5.QtWidgets import QMainWindow, QApplication, QPushButton, QWidget, QAction, QTabWidget, QVBoxLayout
@@ -22,8 +23,8 @@ class App(QMainWindow):
 
         self.show()
 
-class MyTableWidget(QWidget):
 
+class MyTableWidget(QWidget):
     def __init__(self, parent):
         super(QWidget, self).__init__(parent)
         self.layout = QVBoxLayout(self)
@@ -50,19 +51,8 @@ class MyTableWidget(QWidget):
         for currentQTableWidgetItem in self.tableWidget.selectedItems():
             print(currentQTableWidgetItem.row(), currentQTableWidgetItem.column())
 
+
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     ex = App()
     sys.exit(app.exec_())
-
-# def main():
-#     app = QtWidgets.QApplication(sys.argv)
-#     window = QtWidgets.QMainWindow()
-#     button = QtWidgets.QPushButton("Test")
-#     window.setCentralWidget(button)
-#     window.show()
-#     app.exec_()
-#
-# if __name__ == '__main__':
-#     main()
-
